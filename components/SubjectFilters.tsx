@@ -13,8 +13,10 @@ import { useSearchParams } from "next/navigation";
 import { formUrlQuery, removeKeysFromUrlQuery } from "@jsmastery/utils";
 
 const SubjectFilter = () => {
-    const router = useRouter();
+    // These variables are used inside useEffect and must be dependencies
+    const router = useRouter(); 
     const searchParams = useSearchParams();
+    
     const query = searchParams.get("subject") || "";
 
     const [subject, setSubject] = useState(query);
@@ -33,8 +35,13 @@ const SubjectFilter = () => {
                 value: subject,
             });
         }
-        router.push(newUrl, { scroll: false });
-    }, [subject]);
+        
+        // The Next.js functions 'router.push' and 'searchParams.toString()' are used here.
+        // Even though Next.js hook results are often stable, ESLint's exhaustive-deps rule 
+        // requires them to be listed since they are not primitives (string, number, etc.)
+        router.push(newUrl, { scroll: false }); 
+        
+    }, [subject, router, searchParams]); // <-- FIX: Added 'router' and 'searchParams'
 
     return (
         <Select onValueChange={setSubject} value={subject}>

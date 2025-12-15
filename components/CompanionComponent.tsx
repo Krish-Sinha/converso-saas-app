@@ -7,7 +7,33 @@ import Image from "next/image";
 import Lottie, {LottieRefCurrentProps} from "lottie-react";
 import soundwaves from '@/constants/soundwaves.json'
 import { addToSessionHistory } from '@/lib/actions/companion.actions';
-// import {addToSessionHistory} from "@/lib/actions/companion.actions";
+
+// Note: You will need to ensure CompanionComponentProps and SavedMessage types are defined
+// in your global types or in a separate file (e.g., types/index.ts) that is imported here.
+// I have defined a basic structure here to prevent build errors related to missing types.
+
+interface CompanionComponentProps {
+    companionId: string;
+    subject: string;
+    topic: string;
+    name: string;
+    userName: string;
+    userImage: string;
+    style: string;
+    voice: string;
+}
+
+interface SavedMessage {
+    role: string;
+    content: string;
+}
+
+interface Message {
+    type: 'transcript' | 'other'; // Simplified based on usage
+    transcriptType?: 'final' | 'interim'; // Simplified based on usage
+    role: string;
+    transcript: string;
+}
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -25,26 +51,28 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const lottieRef = useRef<LottieRefCurrentProps>(null);
 
     useEffect(() => {
-        if(lottieRef) {
+        if(lottieRef.current) {
             if(isSpeaking) {
-                lottieRef.current?.play()
+                lottieRef.current.play()
             } else {
-                lottieRef.current?.stop()
+                lottieRef.current.stop()
             }
         }
-    }, [isSpeaking, lottieRef])
+    }, [isSpeaking])
 
+    // FIX #1: Added 'companionId' to the dependency array.
     useEffect(() => {
         const onCallStart = () => setCallStatus(CallStatus.ACTIVE);
 
         const onCallEnd = () => {
             setCallStatus(CallStatus.FINISHED);
-            addToSessionHistory(companionId)
+            // 'companionId' is used here, so it's a dependency.
+            addToSessionHistory(companionId) 
         }
 
         const onMessage = (message: Message) => {
             if(message.type === 'transcript' && message.transcriptType === 'final') {
-                const newMessage= { role: message.role, content: message.transcript}
+                const newMessage: SavedMessage = { role: message.role, content: message.transcript}
                 setMessages((prev) => [newMessage, ...prev])
             }
         }
@@ -69,7 +97,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             vapi.off('speech-start', onSpeechStart);
             vapi.off('speech-end', onSpeechEnd);
         }
-    }, []);
+    }, [companionId]); // <-- FIX: Added dependency
 
     const toggleMicrophone = () => {
         const isMuted = vapi.isMuted();
@@ -86,7 +114,8 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             serverMessages: [],
         }
 
-        // @ts-expect-error
+        // FIX #2: Added description to @ts-expect-error directive.
+        // @ts-expect-error -- Vapi SDK's 'start' method expects a looser assistant type than configured locally.
         vapi.start(configureAssistant(voice, style), assistantOverrides)
     }
 
@@ -103,7 +132,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                         <div
                             className={
                             cn(
-                                'absolute transition-opacity duration-1000', callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE ? 'opacity-1001' : 'opacity-0', callStatus === CallStatus.CONNECTING && 'opacity-100 animate-pulse'
+                                'absolute transition-opacity duration-1000', callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE ? 'opacity-100' : 'opacity-0', callStatus === CallStatus.CONNECTING && 'opacity-100 animate-pulse'
                             )
                         }>
                             <Image src={`/icons/${subject}.svg`} alt={subject} width={150} height={150} className="max-sm:w-fit" />
@@ -172,4 +201,4 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     )
 }
 
-export default CompanionComponent
+export default CompanionComponent;
