@@ -114,9 +114,19 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             serverMessages: [],
         }
 
+        const assistant = configureAssistant(voice, style);
+
+        console.log("Vapi Assistant Configuration:", assistant);
+        console.log("Assistant Overrides:", assistantOverrides);
+
         // FIX #2: Added description to @ts-expect-error directive.
-        // @ts-expect-error -- Vapi SDK's 'start' method expects a looser assistant type than configured locally.
-        vapi.start(configureAssistant(voice, style), assistantOverrides)
+        try {
+            // @ts-expect-error -- Vapi SDK's 'start' method expects a looser assistant type than configured locally.
+            vapi.start(assistant, assistantOverrides)
+        } catch (error) {
+            console.error("Vapi start error:", error);
+            setCallStatus(CallStatus.INACTIVE);
+        }
     }
 
     const handleDisconnect = () => {
